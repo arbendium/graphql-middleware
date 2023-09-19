@@ -1,0 +1,22 @@
+{
+  "type": "module",
+  "name": "@arbendium/graphql-middleware",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Arbendium",
+  "license": "ISC",
+  "exports": "./index.js",
+  "scripts": {
+    "lint": "eslint *.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.49.0",
+    "eslint-config-airbnb": "^19.0.4"
+  },
+  "peerDependencies": {
+    "graphql": "^16.8.1"
+  },
+  "dependencies": {
+    "graphql-ws": "^5.14.0"
+  }
+}
