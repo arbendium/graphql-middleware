@@ -4,6 +4,7 @@
   "version": "1.0.1",
   "description": "",
   "author": "Arbendium",
+  "repository": "github:arbendium/graphql-middleware",
   "license": "ISC",
   "exports": "./index.js",
   "scripts": {
