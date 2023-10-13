@@ -10,8 +10,8 @@
     "lint": "eslint *.js"
   },
   "devDependencies": {
-    "@arbendium/eslint-config-base": "github:arbendium/eslint-config-base#1.0.0",
-    "eslint": "^8.49.0"
+    "@arbendium/eslint-config-base": "^0.0.1",
+    "eslint": "^8.51.0"
   },
   "peerDependencies": {
     "graphql": "^16.8.1"
