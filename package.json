@@ -11,7 +11,7 @@
     "lint": "eslint *.js"
   },
   "devDependencies": {
-    "@arbendium/eslint-config-base": "^0.0.1",
+    "@arbendium/eslint-config-base": "^0.1.1",
     "eslint": "^8.51.0"
   },
   "peerDependencies": {

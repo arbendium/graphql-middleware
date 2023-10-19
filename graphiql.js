@@ -1,5 +1,4 @@
-/* eslint-env browser */
-/* global React, ReactDOM, GraphiQL, config */
+/* global React, ReactDOM, GraphiQL, config, window, document */
 
 function makeAsyncIterableIteratorFromSink(client) {
 	const queue = [];
