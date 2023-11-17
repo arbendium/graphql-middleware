@@ -12,7 +12,7 @@ import {
 const directoryName = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default function graphqlMiddleware({ schema, execute }) {
-	return (request, response) => {
+	return (request, response, next) => {
 		let query;
 		let variables;
 		let operationName;
@@ -144,15 +144,7 @@ export default function graphqlMiddleware({ schema, execute }) {
 			operationName,
 			contextValue: request
 		})
-			.then(
-				result => {
-					respond(result);
-				},
-				e => {
-					response.statusCode = 400;
-					respond({ errors: [e] });
-				}
-			);
+			.then(respond, next);
 	};
 }
 
