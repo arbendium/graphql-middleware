@@ -187,10 +187,10 @@ add "&raw" to the end of the URL within a browser.
 			height: 100vh;
 		}
 	</style>
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/graphiql/2.4.5/graphiql.min.css" integrity="sha512-5ThaUbqxz1LtOpY1oWzGcV3+gTg0DUZmddTExm1EdKsbU5bkAzsu8KibjoV73mjIrPbwpC/vDsYL66Yxo85RPA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/graphiql/3.0.9/graphiql.min.css" integrity="K+t3+x6xDyTDFyAJb/Ea7+ECh55Xmy9+dpmyZLnSa2qWeo/NrRmOzzhR2LzuLFsNtnCzyqLfN5Xo7AtLLkFBLA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" integrity="sha512-8Q6Y9XnTbOE+JNvjBQwJ2H8S+UV4uA6hiRykhdtIyDYZ2TprdNmWOUaKdGzOhyr4dCyk287OejbPvwl7lrfqrQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" integrity="sha512-MOCpqoRoisCTwJ8vQQiciZv0qcpROCidek3GTFS6KTk2+y7munJIlKCVkFCYY+p3ErYFXCjmFjnfTTRSC1OHWQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/graphiql/2.4.5/graphiql.min.js" integrity="sha512-Wod+9f0ikNTSQm+Q7eQPlCJoJJt25xDzMRJdRz+bx63Qe7zIiTkDyRRg9gLvcBS5h6915aD8Njdj7a0q5OOVpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/graphiql/3.0.9/graphiql.min.js" integrity="NyL8lNETLNCyPdTsD5VhdWElsklCNNY3BvkJFpvPYLbLmCqPH/0S2YiYwDt7x+ipnPimDnhgwLNSrRDMzWmBSw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>${wsClientLibrary}</script>
 	</head>
 <body>
