@@ -11,8 +11,30 @@ import {
 
 const directoryName = path.dirname(url.fileURLToPath(import.meta.url));
 
-export default function graphqlMiddleware({ schema, execute }) {
+export default function graphqlMiddleware({ schema, execute, executeBatch }) {
+	if (executeBatch == null) {
+		executeBatch = async ({ schema, contextValue, operations }) => {
+			const results = await Promise.allSettled(operations.map(operation => execute({
+				contextValue,
+				schema,
+				...operation
+			})));
+
+			return results.map(({ value }) => value);
+		};
+	}
+
 	return (request, response, next) => {
+		if (Array.isArray(request.body)) {
+			return handleBatchRequest(
+				schema,
+				executeBatch,
+				request,
+				response,
+				next
+			);
+		}
+
 		let query;
 		let variables;
 		let operationName;
@@ -146,6 +168,66 @@ export default function graphqlMiddleware({ schema, execute }) {
 		})
 			.then(respond, next);
 	};
+}
+
+function handleBatchRequest(schema, executeBatch, request, response, next) {
+	const responses = request.body.map((operation, i) => {
+		if (operation == null) {
+			return { errors: [{ message: 'Must provide query string.' }] };
+		}
+
+		const { query } = operation;
+		let { variables, operationName } = operation;
+
+		if (typeof query !== 'string') {
+			return { errors: [{ message: 'Must provide query string.' }] };
+		}
+
+		if (typeof variables !== 'object' || variables == null) {
+			variables = undefined;
+		}
+
+		if (typeof operationName !== 'string') {
+			operationName = undefined;
+		}
+
+		let documentAST;
+		try {
+			documentAST = parse(new Source(query, 'GraphQL request'));
+		} catch (e) {
+			return { errors: [e] };
+		}
+
+		const validationErrors = validate(schema, documentAST, specifiedRules);
+
+		if (validationErrors.length > 0) {
+			return { errors: validationErrors };
+		}
+
+		return {
+			batchIndex: i,
+			document: documentAST,
+			operationName,
+			variableValues: variables
+		};
+	});
+
+	const operations = responses.filter(({ errors }) => errors == null);
+
+	if (operations.length === 0) {
+		response.send(responses);
+	} else {
+		executeBatch({ schema, contextValue: request, operations }).then(
+			results => {
+				operations.forEach(({ batchIndex }, i) => {
+					responses[batchIndex] = results?.[i];
+				});
+
+				response.send(responses);
+			},
+			next
+		);
+	}
 }
 
 const wsClientLibrary = fs.readFileSync(path.resolve(path.dirname(url.fileURLToPath(import.meta.resolve('graphql-ws'))), '..', 'umd', 'graphql-ws.js'), 'utf8').trim();
