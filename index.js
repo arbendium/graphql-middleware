@@ -50,31 +50,36 @@ export default function graphqlMiddleware({ schema, execute }) {
 			body = request.body;
 		}
 
-		query = urlData.get('query') ?? body.query;
-		if (typeof query !== 'string') {
-			query = undefined;
-		}
+		if (!Array.isArray(body)) {
+			query = urlData.get('query') ?? body.query;
 
-		variables = urlData.get('variables') ?? body.variables;
-		if (typeof variables === 'string') {
-			try {
-				variables = JSON.parse(variables);
-			} catch (e) {
-				response.statusCode = 400;
-				respondWithError('Variables are invalid JSON.');
-
-				return;
+			if (typeof query !== 'string') {
+				query = undefined;
 			}
-		} else if (typeof variables !== 'object' || variables == null) {
-			variables = undefined;
+
+			variables = urlData.get('variables') ?? body.variables;
+
+			if (typeof variables === 'string') {
+				try {
+					variables = JSON.parse(variables);
+				} catch (e) {
+					response.statusCode = 400;
+					respondWithError('Variables are invalid JSON.');
+
+					return;
+				}
+			} else if (typeof variables !== 'object' || variables == null) {
+				variables = undefined;
+			}
+
+			operationName = urlData.get('operationName') ?? body.operationName;
+
+			if (typeof operationName !== 'string') {
+				operationName = undefined;
+			}
 		}
 
-		operationName = urlData.get('operationName') ?? body.operationName;
-		if (typeof operationName !== 'string') {
-			operationName = undefined;
-		}
-
-		raw = urlData.get('raw') != null || body.raw !== undefined;
+		raw = urlData.get('raw') != null || Array.isArray(body) || body.raw !== undefined;
 
 		if (request.method !== 'GET' && request.method !== 'POST') {
 			response.statusCode = 405;
@@ -86,65 +91,135 @@ export default function graphqlMiddleware({ schema, execute }) {
 
 		showGraphiQL = !raw && request.accepts(['json', 'html']) === 'html';
 
-		if (query == null) {
-			if (showGraphiQL) {
-				respondWithGraphiQL(response);
+		if (Array.isArray(body)) {
+			const promises = [];
+			let queue = Promise.resolve();
 
-				return;
+			for (let i = 0; i < body.length;) {
+				const batch = [];
+
+				for (;i < body.length; i++) {
+					const { query, variables, operationName } = body[i];
+
+					if (query == null) {
+						promises.push({ errors: [{ message: 'Must provide query string.' }] });
+
+						continue;
+					}
+
+					let documentAST;
+
+					try {
+						documentAST = parse(new Source(query, 'GraphQL request'));
+					} catch (e) {
+						promises.push({ errors: [e] });
+
+						continue;
+					}
+
+					const validationErrors = validate(schema, documentAST, specifiedRules);
+
+					if (validationErrors.length > 0) {
+						promises.push({ errors: validationErrors });
+
+						continue;
+					}
+
+					const promise = queue.then(() => execute({
+						schema,
+						document: documentAST,
+						variableValues: variables,
+						operationName,
+						contextValue: request
+					}));
+
+					promises.push(promise);
+					batch.push(promise);
+
+					const operationAST = getOperationAST(documentAST, operationName);
+
+					if (operationAST == null || operationAST.operation !== 'query') {
+						break;
+					}
+				}
+
+				queue = Promise.allSettled(batch);
 			}
 
-			response.statusCode = 400;
-			respondWithError('Must provide query string.');
+			Promise.allSettled(promises).then(results => {
+				const errors = results
+					.filter(({ status }) => status === 'rejected')
+					.map(({ reason }) => reason);
 
-			return;
-		}
-
-		let documentAST;
-		try {
-			documentAST = parse(new Source(query, 'GraphQL request'));
-		} catch (e) {
-			response.status = 400;
-			respond({ errors: [e] });
-
-			return;
-		}
-
-		const validationErrors = validate(schema, documentAST, specifiedRules);
-
-		if (validationErrors.length > 0) {
-			response.status = 400;
-			respond({ errors: validationErrors });
-
-			return;
-		}
-
-		if (request.method === 'GET') {
-			const operationAST = getOperationAST(documentAST, operationName);
-			if (operationAST && operationAST.operation !== 'query') {
+				if (errors.length) {
+					next(new AggregateError(errors));
+				} else {
+					response.send(results.map(({ value }) => value));
+				}
+			});
+		} else {
+			if (query == null) {
 				if (showGraphiQL) {
-					respondWithGraphiQL(response, {
-						query, variables, operationName, raw
-					});
+					respondWithGraphiQL(response);
 
 					return;
 				}
 
-				response.statusCode = 405;
-				response.setHeader('allow', 'POST');
-				respondWithError(`Can only perform a ${operationAST.operation} operation from a POST request.`);
+				response.statusCode = 400;
+				respondWithError('Must provide query string.');
 
 				return;
 			}
-		}
 
-		execute({
-			schema,
-			document: documentAST,
-			variableValues: variables,
-			operationName,
-			contextValue: request
-		})
-			.then(respond, next);
+			let documentAST;
+
+			try {
+				documentAST = parse(new Source(query, 'GraphQL request'));
+			} catch (e) {
+				response.status = 400;
+				respond({ errors: [e] });
+
+				return;
+			}
+
+			const validationErrors = validate(schema, documentAST, specifiedRules);
+
+			if (validationErrors.length > 0) {
+				response.status = 400;
+				respond({ errors: validationErrors });
+
+				return;
+			}
+
+			if (request.method === 'GET') {
+				const operationAST = getOperationAST(documentAST, operationName);
+
+				if (operationAST && operationAST.operation !== 'query') {
+					if (showGraphiQL) {
+						respondWithGraphiQL(response, {
+							query, variables, operationName, raw
+						});
+
+						return;
+					}
+
+					response.statusCode = 405;
+					response.setHeader('allow', 'POST');
+					respondWithError(`Can only perform a ${operationAST.operation} operation from a POST request.`);
+
+					return;
+				}
+			}
+
+			execute({
+				schema,
+				document: documentAST,
+				variableValues: variables,
+				operationName,
+				contextValue: request
+			})
+				.then(respond, next);
+		}
 	};
 }
 
